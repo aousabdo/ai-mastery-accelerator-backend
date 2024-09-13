@@ -16,7 +16,7 @@ const pool = new Pool({
   }
 });
 
-app.use(cors({ origin: '*' }));
+app.use(cors({ origin: 'https://aousabdo.github.io' }));
 app.use(express.json());
 
 // Helper function to run queries
@@ -36,23 +36,25 @@ const query = async (text, params) => {
 app.post('/api/initial-signup', async (req, res) => {
   const { name, email } = req.body;
   try {
+    console.log('Received signup request:', { name, email });
     // Check if the email already exists
     const existingApplicant = await pool.query('SELECT id FROM applicants WHERE email = $1', [email]);
     
     if (existingApplicant.rows.length > 0) {
-      // If the email exists, return the existing applicant's ID
+      console.log('Applicant already exists:', existingApplicant.rows[0]);
       res.status(200).json({ id: existingApplicant.rows[0].id, message: 'Applicant already exists' });
     } else {
-      // If the email doesn't exist, insert a new applicant
+      console.log('Creating new applicant');
       const result = await pool.query(
         'INSERT INTO applicants (name, email) VALUES ($1, $2) RETURNING id',
         [name, email]
       );
+      console.log('New applicant created:', result.rows[0]);
       res.status(201).json({ id: result.rows[0].id, message: 'Applicant created successfully' });
     }
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Error in /api/initial-signup:', err);
+    res.status(500).json({ error: 'Internal server error', details: err.message });
   }
 });
 
@@ -105,6 +107,11 @@ app.get('/api/applicants', async (req, res) => {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+// Test route
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'Server is running' });
 });
 
 // Start the server
